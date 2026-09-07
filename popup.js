@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // Fetch limits function
 async function fetchLimits() {
   try {
@@ -66,6 +67,37 @@ async function fetchLimits() {
     console.error('Fetch error:', error);
     throw error;
   }
+=======
+// Escape API-supplied values before inserting them into HTML (XSS protection)
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Ask the background worker to refresh limits (single data-fetch path),
+// then read back the freshly stored result.
+async function requestLimits() {
+  const response = await chrome.runtime.sendMessage({ action: 'fetchNow' });
+
+  if (!response || !response.success) {
+    throw new Error('Background refresh failed. Please try again.');
+  }
+
+  const result = await chrome.storage.local.get(['limitsData', 'lastUpdated', 'lastError']);
+
+  if (result.lastError) {
+    throw new Error(result.lastError);
+  }
+  if (!result.limitsData) {
+    throw new Error('No data available. Please try again.');
+  }
+
+  return { data: result.limitsData, lastUpdated: result.lastUpdated };
+>>>>>>> security-reinforcement
 }
 
 function displayLimits(data, lastUpdated) {
@@ -86,8 +118,13 @@ function displayLimits(data, lastUpdated) {
     const valueClass = limit.highlight ? 'limit-value highlight' : 'limit-value';
     html += `
       <div class="limit-item">
+<<<<<<< HEAD
         <div class="limit-label">${limit.label}</div>
         <div class="${valueClass}">${limit.value}</div>
+=======
+        <div class="limit-label">${escapeHtml(limit.label)}</div>
+        <div class="${valueClass}">${escapeHtml(limit.value)}</div>
+>>>>>>> security-reinforcement
       </div>
     `;
   });
@@ -105,7 +142,11 @@ function showError(message) {
   content.innerHTML = `
     <div class="error-message">
       <div style="font-size: 24px; margin-bottom: 8px;">⚠️</div>
+<<<<<<< HEAD
       <div>${message}</div>
+=======
+      <div>${escapeHtml(message)}</div>
+>>>>>>> security-reinforcement
     </div>
   `;
 }
@@ -120,7 +161,11 @@ function showLoading() {
   `;
 }
 
+<<<<<<< HEAD
 // Load cached data or fetch fresh data
+=======
+// Load cached data or request a fresh fetch from the background worker
+>>>>>>> security-reinforcement
 async function initialize() {
   const refreshBtn = document.getElementById('refresh');
 
@@ -128,15 +173,22 @@ async function initialize() {
   const result = await chrome.storage.local.get(['limitsData', 'lastUpdated', 'lastError']);
 
   if (result.lastError) {
+<<<<<<< HEAD
     showError(result.lastError);
     return;
   }
 
   if (result.limitsData) {
+=======
+    // Stale error from a previous run: show it, but let the user retry below
+    showError(result.lastError);
+  } else if (result.limitsData) {
+>>>>>>> security-reinforcement
     displayLimits(result.limitsData, result.lastUpdated);
   } else {
     showLoading();
     try {
+<<<<<<< HEAD
       const data = await fetchLimits();
       displayLimits(data, Date.now());
     } catch (error) {
@@ -146,18 +198,35 @@ async function initialize() {
   }
 
   // Setup refresh button
+=======
+      const { data, lastUpdated } = await requestLimits();
+      displayLimits(data, lastUpdated);
+    } catch (error) {
+      showError(error.message);
+    }
+  }
+
+  // Setup refresh button (kept enabled after errors so retries are possible)
+>>>>>>> security-reinforcement
   refreshBtn.addEventListener('click', async () => {
     refreshBtn.disabled = true;
     refreshBtn.textContent = 'Refreshing...';
 
     try {
       showLoading();
+<<<<<<< HEAD
       const data = await fetchLimits();
       displayLimits(data, Date.now());
       await chrome.storage.local.set({ lastError: null });
     } catch (error) {
       showError(error.message);
       await chrome.storage.local.set({ lastError: error.message });
+=======
+      const { data, lastUpdated } = await requestLimits();
+      displayLimits(data, lastUpdated);
+    } catch (error) {
+      showError(error.message);
+>>>>>>> security-reinforcement
     } finally {
       refreshBtn.disabled = false;
       refreshBtn.textContent = 'Refresh Now';

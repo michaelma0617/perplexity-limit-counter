@@ -20,11 +20,25 @@ async function fetchLimits() {
     });
 
     if (!rateLimitResponse.ok) {
+      const errorMessage = rateLimitResponse.status === 401 || rateLimitResponse.status === 403
+        ? 'Not authenticated. Please log in to Perplexity.ai first.'
+        : `API error: ${rateLimitResponse.status}`;
       console.error('Rate limit fetch failed:', rateLimitResponse.status);
+      await chrome.storage.local.set({ lastError: errorMessage });
+      updateBadge('?');
       return null;
     }
 
     const rateLimitData = await rateLimitResponse.json();
+
+    // Validate data structure before storing it
+    if (typeof rateLimitData.remaining_pro === 'undefined') {
+      console.error('Unexpected API response format:', rateLimitData);
+      await chrome.storage.local.set({ lastError: 'Unexpected API response format' });
+      updateBadge('?');
+      return null;
+    }
+
     let settingsData = {};
 
     // Settings might fail if endpoint requires different auth
@@ -57,6 +71,7 @@ async function fetchLimits() {
   } catch (error) {
     console.error('Fetch error:', error);
     await chrome.storage.local.set({ lastError: error.message });
+    updateBadge('?');
     return null;
   }
 }
@@ -91,6 +106,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   } else if (request.action === 'fetchNow') {
     fetchLimits().then(data => {
       sendResponse({ success: true, data: data });
+    }).catch(() => {
+      sendResponse({ success: false });
     });
     return true; // Keep channel open for async response
   }

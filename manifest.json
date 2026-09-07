@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Perplexity Limit Tracker",
+  "version": "1.2",
+  "description": "Display Perplexity Pro search and upload limits with auto-refresh",
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://www.perplexity.ai/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Perplexity Limits"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
